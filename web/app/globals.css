@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* ============ Sunlit Passport design system ============ */
+:root {
+  --paper: #f7efde;
+  --paper-2: #f1e6cf;
+  --ink: #2b2017;
+  --ink-soft: #5c4b38;
+  --coral: #e1572f;
+  --coral-deep: #c5421f;
+  --teal: #1d6f69;
+  --teal-deep: #134f4a;
+  --gold: #d99a2b;
+  --gold-soft: #f0c45a;
+  --tan: #d8c4a0;
+  --tan-line: #cdb78d;
+  --cream-card: #fcf7ec;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-coral: var(--coral);
+  --color-coral-deep: var(--coral-deep);
+  --color-teal: var(--teal);
+  --color-teal-deep: var(--teal-deep);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-tan: var(--tan);
+  --color-tan-line: var(--tan-line);
+  --color-card: var(--cream-card);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-hanken);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--paper);
+  /* layered sunset glow + paper warmth */
+  background-image:
+    radial-gradient(120% 80% at 85% -10%, rgba(225, 87, 47, 0.18) 0%, rgba(225, 87, 47, 0) 55%),
+    radial-gradient(90% 70% at 5% 0%, rgba(217, 154, 43, 0.16) 0%, rgba(217, 154, 43, 0) 50%),
+    radial-gradient(100% 90% at 50% 120%, rgba(29, 111, 105, 0.14) 0%, rgba(29, 111, 105, 0) 55%);
+  background-attachment: fixed;
+}
+
+/* subtle paper grain overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+.display {
+  font-family: var(--font-display), Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* dotted journey connector */
+.dotline {
+  background-image: radial-gradient(currentColor 1.4px, transparent 1.6px);
+  background-size: 10px 10px;
+  background-repeat: repeat-x;
+  background-position: 0 center;
+}
+
+.card-shadow {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 18px 40px -22px rgba(43, 32, 23, 0.45),
+    0 4px 12px -8px rgba(43, 32, 23, 0.25);
+}
+
+.tile-shadow {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 10px 22px -14px rgba(43, 32, 23, 0.45);
+}
+
+.stamp-ring {
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px currentColor;
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-26px); opacity: 0; }
+}

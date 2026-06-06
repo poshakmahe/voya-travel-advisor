@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Playwright MCP scratch output
+.playwright-mcp/
+
+# Dev preview screenshots captured while building (not source)
+/*.png
+
+# Node / Next (web/.gitignore also applies within web/)
+node_modules/
+.next/
+out/
