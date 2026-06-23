@@ -7,7 +7,6 @@ import { motion } from "motion/react";
 import { ArrowRight, Loader2, type LucideIcon } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { useTrip } from "@/lib/store";
-import { buildPlan } from "@/lib/plan";
 import { submitTrip } from "@/lib/submitTrip";
 import { applicableFlow, hasYoungKids } from "@/lib/branching";
 import {
@@ -56,7 +55,7 @@ export default function Summary() {
     setSending(true);
     setError(null);
     try {
-      await submitTrip(answers, buildPlan(answers), email.trim());
+      await submitTrip(answers, email.trim());
       router.push("/celebrate");
     } catch (e) {
       setSending(false);

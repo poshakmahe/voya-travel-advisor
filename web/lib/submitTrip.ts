@@ -1,5 +1,5 @@
 import type { Answers } from "@/lib/store";
-import type { Plan } from "@/lib/plan";
+import { travelerCount } from "@/lib/branching";
 import {
   WHO_OPTIONS,
   VIBE_OPTIONS,
@@ -12,9 +12,10 @@ import {
   WHEN_OPTIONS,
   SEASON_OPTIONS,
   BUDGET_OPTIONS,
+  MIN_NIGHTS_OPTIONS,
+  estimateNights,
   labelOf,
   labelsOf,
-  fmtMoney,
 } from "@/lib/trip";
 
 /** Public Web3Forms access key — safe to ship in client code.
@@ -22,13 +23,16 @@ import {
 const WEB3FORMS_KEY = "9cf7125f-168b-442f-9b41-5c30cf01cffb";
 const ENDPOINT = "https://api.web3forms.com/submit";
 
-/** Turn the captured profile + built plan into a human-readable email body. */
-function buildSummary(a: Answers, plan: Plan): string {
+/** Turn the captured profile into a human-readable list of the traveler's
+ *  PREFERENCES. No generated itinerary — that's deferred until real AI
+ *  trip generation is integrated. */
+function buildSummary(a: Answers): string {
   const L: string[] = [];
-  const cur = a.currency;
+  const sym = (code: string) =>
+    ({ USD: "$", EUR: "€", GBP: "£", INR: "₹", AED: "AED ", JPY: "¥", AUD: "A$" })[code] ?? "$";
 
   L.push(`DESTINATION: ${a.destination || "—"}`);
-  L.push(`TRIP LENGTH: ${plan.nights} nights`);
+  L.push(`TRIP LENGTH: ${estimateNights(a)} nights`);
 
   // when
   const whenKind = labelOf(WHEN_OPTIONS, a.when);
@@ -41,7 +45,8 @@ function buildSummary(a: Answers, plan: Plan): string {
 
   // who + travelers
   const who = labelOf(WHO_OPTIONS, a.who);
-  if (who) L.push(`PARTY: ${who} · ${plan.pax} traveler${plan.pax === 1 ? "" : "s"}`);
+  const pax = travelerCount(a);
+  if (who) L.push(`PARTY: ${who} · ${pax} traveler${pax === 1 ? "" : "s"}`);
   const people = a.travelers
     .filter((t) => t.name.trim() || t.age.trim())
     .map((t) => `${t.name.trim() || "—"}${t.age.trim() ? ` (age ${t.age.trim()})` : ""}`)
@@ -66,60 +71,40 @@ function buildSummary(a: Answers, plan: Plan): string {
   const evenings = labelsOf(NIGHTS_OPTIONS, a.nights);
   if (evenings) L.push(`EVENINGS: ${evenings}`);
 
+  // stay preference + nightly budget + pacing
   const stays = labelsOf(STAY_OPTIONS, a.stayTypes);
   if (stays) L.push(`STAY PREFERENCE: ${stays}`);
+  if (a.accomNightly)
+    L.push(`NIGHTLY BUDGET: ≈ ${sym(a.currency)}${Number(a.accomNightly).toLocaleString()}/night${a.accomSplurge ? " (open to a splurge)" : ""}`);
+  const pacing = labelOf(MIN_NIGHTS_OPTIONS, a.minNights);
+  if (pacing) L.push(`PACE: ${pacing}`);
 
-  const budget = labelOf(BUDGET_OPTIONS, a.budgetTier);
-  if (budget) L.push(`BUDGET TIER: ${budget}`);
-
-  // ---- the generated plan ----
-  L.push("");
-  L.push("──────── GENERATED PLAN ────────");
-  L.push(`Stay: ${plan.stay.name} (${plan.stay.kind}) — ≈ ${fmtMoney(plan.stay.perNight, cur)}/night`);
-
-  if (plan.food.length) {
-    L.push("");
-    L.push("Food picks:");
-    plan.food.forEach((f) => L.push(`  • ${f.name} — ${f.note}`));
-  }
-
-  L.push("");
-  L.push("Itinerary:");
-  plan.days.forEach((d) => {
-    L.push(`  Day ${d.n} — ${d.theme}`);
-    d.slots.forEach((s) => L.push(`    ${s.time}: ${s.title}`));
-  });
-  if (plan.extraDays > 0) L.push(`  + ${plan.extraDays} more day(s) to fill out`);
-
-  if (plan.budget) {
-    L.push("");
-    L.push(`Estimated total: ${fmtMoney(plan.budget.total, cur)} (${plan.budget.basisNote})`);
-  } else {
-    L.push("");
-    L.push("Budget: luxury — tally intentionally omitted");
-  }
-
-  if (plan.notes.length) {
-    L.push("");
-    L.push("Adaptive notes:");
-    plan.notes.forEach((n) => L.push(`  • ${n}`));
+  // budget
+  const tier = labelOf(BUDGET_OPTIONS, a.budgetTier);
+  if (tier) {
+    const range = [a.budgetMin, a.budgetMax]
+      .filter(Boolean)
+      .map((v) => `${sym(a.currency)}${Number(v).toLocaleString()}`)
+      .join("–");
+    const basis = a.budgetBasis === "per_person" ? "per person" : "whole trip";
+    L.push(`BUDGET: ${[tier, range || null, basis].filter(Boolean).join(" · ")}`);
   }
 
   return L.join("\n");
 }
 
-/** POST the trip to Web3Forms, which emails it to the configured inbox.
- *  `travelerEmail` becomes the reply-to, so the recipient can reply
- *  straight to the traveler with their full itinerary. */
-export async function submitTrip(a: Answers, plan: Plan, travelerEmail: string): Promise<void> {
-  const summary = buildSummary(a, plan);
+/** POST the traveler's preferences to Web3Forms, which emails them to the
+ *  configured inbox. `travelerEmail` becomes the reply-to, so the recipient
+ *  can reply straight to the traveler with their hand-built itinerary. */
+export async function submitTrip(a: Answers, travelerEmail: string): Promise<void> {
+  const summary = buildSummary(a);
 
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
       access_key: WEB3FORMS_KEY,
-      subject: `New Voya trip — ${plan.city}, ${plan.nights} nights`,
+      subject: `New Voya trip — ${a.destination || "trip"}, ${estimateNights(a)} nights`,
       from_name: "Voya",
       // Web3Forms uses `email` as the reply-to address on the email it sends you
       email: travelerEmail,
@@ -127,9 +112,9 @@ export async function submitTrip(a: Answers, plan: Plan, travelerEmail: string):
       // headline fields (show up neatly at the top of the email)
       "Traveler email": travelerEmail,
       Destination: a.destination || "—",
-      Nights: plan.nights,
+      Nights: estimateNights(a),
       Party: labelOf(WHO_OPTIONS, a.who) ?? "—",
-      // the readable body
+      // the readable body — preferences only
       message: summary,
       // full machine-readable profile, for consuming later
       profile_json: JSON.stringify(a),
