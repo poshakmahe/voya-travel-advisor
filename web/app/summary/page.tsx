@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { ArrowRight, type LucideIcon } from "lucide-react";
+import { ArrowRight, Loader2, type LucideIcon } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { useTrip } from "@/lib/store";
+import { buildPlan } from "@/lib/plan";
+import { submitTrip } from "@/lib/submitTrip";
 import { applicableFlow, hasYoungKids } from "@/lib/branching";
 import {
   META,
@@ -35,9 +39,30 @@ type Row = { key: StepKey; icon: LucideIcon; label: string; value: string | null
 const join = (...parts: (string | undefined | null | false)[]) =>
   parts.filter(Boolean).join(" · ") || null;
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Summary() {
   const { answers } = useTrip();
+  const router = useRouter();
   const sym = symbolFor(answers.currency);
+
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const emailValid = EMAIL_RE.test(email.trim());
+
+  async function handleDesign() {
+    if (!emailValid || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      await submitTrip(answers, buildPlan(answers), email.trim());
+      router.push("/celebrate");
+    } catch (e) {
+      setSending(false);
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    }
+  }
 
   const fmtDate = (s: string) =>
     new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -192,13 +217,42 @@ export default function Summary() {
       </div>
 
       <div className="mt-auto pt-8">
-        <Link
-          href="/celebrate"
-          className="group flex w-full items-center justify-center gap-2 rounded-xl bg-coral px-6 py-4 text-lg font-semibold text-paper transition-colors hover:bg-coral-deep"
-        >
-          {answers.destination ? `Design my ${answers.destination} trip` : "Design my trip"}
-          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-        </Link>
+        <label htmlFor="design-email" className="block text-sm font-medium text-ink-soft">
+          Drop your email and we&apos;ll design your trip and send it straight to your inbox.
+        </label>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+          <input
+            id="design-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@email.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (error) setError(null);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleDesign()}
+            className="flex-1 rounded-xl border border-tan-line bg-card px-4 py-4 text-ink outline-none transition-colors placeholder:text-ink-soft/40 focus:border-coral"
+          />
+          <button
+            onClick={handleDesign}
+            disabled={!emailValid || sending}
+            className="group flex items-center justify-center gap-2 rounded-xl bg-coral px-6 py-4 text-lg font-semibold text-paper transition-colors hover:bg-coral-deep disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {sending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" /> Sending…
+              </>
+            ) : (
+              <>
+                {answers.destination ? `Design my ${answers.destination} trip` : "Design my trip"}
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+              </>
+            )}
+          </button>
+        </div>
+        {error && <p className="mt-3 text-sm font-medium text-coral-deep">{error}</p>}
       </div>
     </main>
   );

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { useTrip } from "@/lib/store";
 
 export default function Celebrate() {
-  const { answers } = useTrip();
+  const { answers, reset } = useTrip();
   const place = answers.destination || "your destination";
   return (
     <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl flex-col px-6 py-8">
@@ -49,8 +49,8 @@ export default function Celebrate() {
           transition={{ delay: 0.33 }}
           className="mt-3 max-w-md text-lg leading-relaxed text-ink-soft"
         >
-          We&apos;re shaping {place} around everything you told us — the places to stay,
-          the food, the pace, the evenings. Give us a moment to craft it.
+          We&apos;ve got everything you told us about {place}, down to the stays, the food, the
+          pace, and the evenings. We&apos;ll hand-craft a full itinerary and send it to your inbox.
         </motion.p>
 
         <motion.div
@@ -60,7 +60,7 @@ export default function Celebrate() {
           className="mt-6 flex items-center gap-2 text-sm text-ink-soft/70"
         >
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-coral" />
-          Matching stays, food &amp; experiences to your profile…
+          On its way — keep an eye on your email.
         </motion.div>
       </div>
 
@@ -68,14 +68,14 @@ export default function Celebrate() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="pt-6"
+        className="pt-6 text-center"
       >
         <Link
-          href="/trip"
-          className="group flex w-full items-center justify-center gap-2 rounded-xl bg-coral px-6 py-4 text-lg font-semibold text-paper transition-colors hover:bg-coral-deep"
+          href="/"
+          onClick={() => reset()}
+          className="text-sm font-medium text-ink-soft/70 transition-colors hover:text-coral"
         >
-          Reveal my trip
-          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+          Plan another trip
         </Link>
       </motion.div>
     </main>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -15,15 +14,12 @@ import {
   Users,
   MapPin,
   ArrowRight,
-  Check,
-  Loader2,
   Pencil,
   type LucideIcon,
 } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { useTrip } from "@/lib/store";
 import { buildPlan } from "@/lib/plan";
-import { submitTrip } from "@/lib/submitTrip";
 import { fmtMoney, labelsOf, VIBE_OPTIONS } from "@/lib/trip";
 
 const TIME_ICON: Record<string, LucideIcon> = {
@@ -52,33 +48,11 @@ function Section({
   );
 }
 
-type SaveState = "idle" | "sending" | "sent" | "error";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default function Trip() {
   const { answers } = useTrip();
   const plan = buildPlan(answers);
   const vibes = labelsOf(VIBE_OPTIONS, answers.vibe);
   const firstName = answers.travelers.find((t) => t.name.trim())?.name.trim().split(" ")[0];
-
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<SaveState>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const emailValid = EMAIL_RE.test(email.trim());
-
-  async function handleSave() {
-    if (!emailValid || state === "sending") return;
-    setState("sending");
-    setError(null);
-    try {
-      await submitTrip(answers, plan, email.trim());
-      setState("sent");
-    } catch (e) {
-      setState("error");
-      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
-    }
-  }
 
   return (
     <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-2xl flex-col px-6 py-8">
@@ -271,78 +245,18 @@ export default function Trip() {
         </Section>
       )}
 
-      {state === "sent" ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-10 flex items-start gap-3 rounded-2xl border border-teal/40 bg-teal/10 p-5"
+      <div className="mt-10 flex items-center gap-3">
+        <Link
+          href="/summary"
+          className="inline-flex items-center gap-2 rounded-xl border border-tan-line px-5 py-3.5 font-medium text-ink-soft transition-colors hover:border-ink-soft/40"
         >
-          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-teal text-paper">
-            <Check className="h-5 w-5" strokeWidth={2.6} />
-          </span>
-          <div>
-            <p className="font-semibold text-teal-deep">Sent — your trip is on its way to us.</p>
-            <p className="mt-1 text-sm text-ink-soft">
-              We&apos;ve got your preferences. We&apos;ll be in touch at{" "}
-              <span className="font-medium text-ink">{email.trim()}</span> with a full,
-              hand-built itinerary. Keep an eye on your inbox.
-            </p>
-          </div>
-        </motion.div>
-      ) : (
-        <div className="mt-10 rounded-2xl border border-tan-line bg-card/70 p-5">
-          <label htmlFor="trip-email" className="block font-semibold text-ink">
-            Want the full, hand-built version?
-          </label>
-          <p className="mt-1 text-sm text-ink-soft/80">
-            Drop your email and we&apos;ll send a detailed, finished itinerary tailored to
-            everything you picked.
-          </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              id="trip-email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (state === "error") setState("idle");
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              className="flex-1 rounded-xl border border-tan-line bg-paper px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-ink-soft/40 focus:border-coral"
-            />
-            <button
-              onClick={handleSave}
-              disabled={!emailValid || state === "sending"}
-              className="group flex items-center justify-center gap-2 rounded-xl bg-coral px-6 py-3.5 font-semibold text-paper transition-colors hover:bg-coral-deep disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {state === "sending" ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Sending…
-                </>
-              ) : (
-                <>
-                  Send me my trip
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
-            </button>
-          </div>
-          {state === "error" && (
-            <p className="mt-3 text-sm font-medium text-coral-deep">{error}</p>
-          )}
-          <div className="mt-4 border-t border-tan-line/70 pt-4">
-            <Link
-              href="/summary"
-              className="inline-flex items-center gap-2 text-sm font-medium text-ink-soft transition-colors hover:text-coral"
-            >
-              <Pencil className="h-4 w-4" /> Adjust my answers first
-            </Link>
-          </div>
-        </div>
-      )}
+          <Pencil className="h-4 w-4" /> Adjust
+        </Link>
+        <button className="group flex flex-1 items-center justify-center gap-2 rounded-xl bg-coral px-6 py-3.5 text-lg font-semibold text-paper transition-colors hover:bg-coral-deep">
+          Love it — save this trip
+          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+        </button>
+      </div>
       <p className="mt-3 pb-2 text-center text-sm text-ink-soft/50">
         A starting point — every piece is yours to tweak.
       </p>
