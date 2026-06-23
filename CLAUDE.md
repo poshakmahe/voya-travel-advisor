@@ -23,6 +23,18 @@ npm run start      # serve the production build
 
 There is **no test suite and no lint step configured** (the scaffold was created with `--no-eslint`). Don't assume `npm test`/`npm run lint` exist.
 
+## Deployment
+
+Hosted on **GitHub Pages** at **https://poshakmahe.github.io/voya-travel-advisor/** as a static export. Pushing to `main` auto-builds and deploys via `.github/workflows/deploy.yml` (builds `web/`, uploads `web/out`, deploys). No manual steps.
+
+- **`web/next.config.ts`** enables this: `output: "export"`, `basePath`/`assetPrefix` of `/voya-travel-advisor` **in production only** (empty in dev so localhost works), `trailingSlash: true` (emits `/when/index.html` so direct links/refresh don't 404 on Pages), and `images.unoptimized` (no server-side optimizer). **The basePath string is the repo name — update it if the repo is renamed.**
+- `web/public/.nojekyll` keeps Pages from stripping the `_next` folder.
+- **Static-export constraint:** no API routes, server actions, cookies, or default `next/image`. Keep all dynamic logic client-side (it already is). `localStorage` is read only in effects — never during render.
+
+### Trip submission (lead capture)
+
+The `/trip` "save trip" button (`web/app/trip/page.tsx` + `web/lib/submitTrip.ts`) POSTs the completed profile to **Web3Forms**, which emails it to the inbox that owns the access key. The traveler enters their email (captured as the email's reply-to), so the recipient can reply with a full itinerary. The Web3Forms access key is **public by design** — safe to commit and expose in the client bundle.
+
 ## Architecture (the big picture)
 
 The questionnaire is **data-driven from a single definition**, with answers in one store and all conditional behavior in one branching module. Understand these four files and you understand the app:
